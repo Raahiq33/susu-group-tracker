@@ -54,7 +54,8 @@ class SusuGroup {
     }
 
     const member = this.members.find(
-      m => m.toLowerCase() === String(name).trim().toLowerCase()
+      m => m.toLowerCase() ===
+        String(name).trim().toLowerCase()
     );
 
     if (!member) {
@@ -68,7 +69,6 @@ class SusuGroup {
     }
 
     const alreadyPaid = this.payments.get(member);
-
     const remaining =
       this.weeklyContribution - alreadyPaid;
 
@@ -89,19 +89,147 @@ class SusuGroup {
     };
   }
 
+  getReport() {
+    const paidInFull = [];
+    const owing = [];
+
+    for (const member of this.members) {
+      const paid = this.payments.get(member);
+      const remaining = this.weeklyContribution - paid;
+
+      if (remaining === 0) {
+        paidInFull.push(member);
+      } else {
+        owing.push({
+          member,
+          amount: formatGhs(remaining)
+        });
+      }
+    }
+
+    return {
+      currentWeek: this.currentWeek,
+      weeklyContribution: formatGhs(
+        this.weeklyContribution
+      ),
+      paidInFull,
+      owing,
+      payoutHistory: this.payoutHistory.map(
+        payout => ({ ...payout })
+      )
+    };
+  }
+
+  closeWeek() {
+    if (this.members.length === 0) {
+      throw new Error(
+        "Cannot close a week without members"
+      );
+    }
+
+    const report = this.getReport();
+
+    if (report.owing.length > 0) {
+      return {
+        closed: false,
+        week: this.currentWeek,
+        message: "Week cannot close. Payments pending.",
+        owing: report.owing
+      };
+    }
+
+    const totalPot =
+      this.weeklyContribution * this.members.length;
+
+    if (!Number.isSafeInteger(totalPot)) {
+      throw new Error("Total pot is too large");
+    }
+
+    const recipientIndex =
+      (this.currentWeek - 1) % this.members.length;
+
+    const recipient = this.members[recipientIndex];
+    const closedWeek = this.currentWeek;
+
+    const payout = {
+      week: closedWeek,
+      recipient,
+      amount: formatGhs(totalPot)
+    };
+
+    this.payoutHistory.push(payout);
+    this.started = true;
+    this.currentWeek++;
+
+    this.payments = new Map(
+      this.members.map(member => [member, 0])
+    );
+
+    return {
+      closed: true,
+      week: closedWeek,
+      recipient,
+      payout: formatGhs(totalPot),
+      nextWeek: this.currentWeek
+    };
+  }
+
   showMembers() {
     console.log("\n--- GROUP DETAILS ---");
     console.log(
       "Weekly Contribution: GHS " +
       formatGhs(this.weeklyContribution)
     );
-
     console.log("Current Week:", this.currentWeek);
     console.log("Members:");
 
     this.members.forEach((member, index) => {
       console.log(`${index + 1}. ${member}`);
     });
+  }
+
+  showReport() {
+    const report = this.getReport();
+
+    console.log("\n========== GROUP REPORT ==========");
+    console.log("Current Week:", report.currentWeek);
+    console.log(
+      "Weekly Contribution: GHS",
+      report.weeklyContribution
+    );
+
+    console.log("\nPaid in Full:");
+    if (report.paidInFull.length === 0) {
+      console.log("None");
+    } else {
+      report.paidInFull.forEach(name =>
+        console.log(`- ${name}`)
+      );
+    }
+
+    console.log("\nOutstanding Payments:");
+    if (report.owing.length === 0) {
+      console.log("None");
+    } else {
+      report.owing.forEach(item => {
+        console.log(
+          `- ${item.member} owes GHS ${item.amount}`
+        );
+      });
+    }
+
+    console.log("\nPayout History:");
+    if (report.payoutHistory.length === 0) {
+      console.log("No payouts yet");
+    } else {
+      report.payoutHistory.forEach(payout => {
+        console.log(
+          `Week ${payout.week}: ${payout.recipient} received GHS ${payout.amount}`
+        );
+      });
+    }
+
+    console.log("==================================");
   }
 }
 

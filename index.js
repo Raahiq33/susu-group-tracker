@@ -15,20 +15,32 @@ group.showMembers();
 
 console.log("\n--- WEEK 1 PAYMENTS ---");
 
-console.log(
-  group.recordContribution("Ama", 1, "50.00")
-);
+group.recordContribution("Ama", 1, "50.00");
+group.recordContribution("Kofi", 1, "50.00");
+group.recordContribution("Esi", 1, "30.00");
 
-console.log(
-  group.recordContribution("Kofi", 1, "50.00")
-);
+group.showReport();
 
-console.log(
-  group.recordContribution("Esi", 1, "30.00")
-);
+console.log("\n--- ATTEMPT TO CLOSE WEEK 1 ---");
+console.log(group.closeWeek());
 
-console.log("\n--- ESI REMAINING PAYMENT ---");
-
+console.log("\n--- ESI PAYS REMAINING 20.00 ---");
 console.log(
   group.recordContribution("Esi", 1, "20.00")
 );
+
+console.log("\n--- CLOSE WEEK 1 ---");
+console.log(group.closeWeek());
+
+group.showReport();
+
+console.log("\n--- WEEK 2 PAYMENTS ---");
+
+group.recordContribution("Ama", 2, "50.00");
+group.recordContribution("Kofi", 2, "50.00");
+group.recordContribution("Esi", 2, "50.00");
+
+console.log("\n--- CLOSE WEEK 2 ---");
+console.log(group.closeWeek());
+
+group.showReport();
