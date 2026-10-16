@@ -1,46 +1,164 @@
 
+const readline = require("node:readline/promises");
+const { stdin: input, stdout: output } = require("node:process");
 const SusuGroup = require("./src/SusuGroup");
 
-console.log("================================");
-console.log("       SUSU GROUP TRACKER       ");
-console.log("================================");
+const rl = readline.createInterface({ input, output });
 
-const group = new SusuGroup("50.00");
+let group = null;
 
-group.addMember("Ama");
-group.addMember("Kofi");
-group.addMember("Esi");
+function requireGroup() {
+  if (!group) {
+    throw new Error("Please create a group first.");
+  }
+}
 
-group.showMembers();
+function showMenu() {
+  console.log("\n========== MAIN MENU ==========");
+  console.log("1. Create Savings Group");
+  console.log("2. Add Member");
+  console.log("3. Record Contribution");
+  console.log("4. Close Current Week");
+  console.log("5. View Group Report");
+  console.log("6. Exit");
+  console.log("================================");
+}
 
-console.log("\n--- WEEK 1 PAYMENTS ---");
+async function main() {
+  console.log("================================");
+  console.log("       SUSU GROUP TRACKER");
+  console.log("================================");
+  console.log("Savings Group Management System");
 
-group.recordContribution("Ama", 1, "50.00");
-group.recordContribution("Kofi", 1, "50.00");
-group.recordContribution("Esi", 1, "30.00");
+  try {
+    while (true) {
+      showMenu();
 
-group.showReport();
+      const choice = (
+        await rl.question("Choose an option (1-6): ")
+      ).trim();
 
-console.log("\n--- ATTEMPT TO CLOSE WEEK 1 ---");
-console.log(group.closeWeek());
+      try {
+        switch (choice) {
+          case "1": {
+            if (group) {
+              console.log("A group already exists.");
+              break;
+            }
 
-console.log("\n--- ESI PAYS REMAINING 20.00 ---");
-console.log(
-  group.recordContribution("Esi", 1, "20.00")
-);
+            const amount = await rl.question(
+              "Enter weekly contribution (GHS): "
+            );
 
-console.log("\n--- CLOSE WEEK 1 ---");
-console.log(group.closeWeek());
+            group = new SusuGroup(amount.trim());
 
-group.showReport();
+            console.log(
+              "Savings group created successfully!"
+            );
+            break;
+          }
 
-console.log("\n--- WEEK 2 PAYMENTS ---");
+          case "2": {
+            requireGroup();
 
-group.recordContribution("Ama", 2, "50.00");
-group.recordContribution("Kofi", 2, "50.00");
-group.recordContribution("Esi", 2, "50.00");
+            const name = await rl.question(
+              "Enter member name: "
+            );
 
-console.log("\n--- CLOSE WEEK 2 ---");
-console.log(group.closeWeek());
+            const member = group.addMember(name);
 
-group.showReport();
+            console.log(
+              `Member ${member} added successfully!`
+            );
+            break;
+          }
+
+          case "3": {
+            requireGroup();
+
+            const name = await rl.question(
+              "Enter member name: "
+            );
+
+            const week = await rl.question(
+              "Enter week number: "
+            );
+
+            const amount = await rl.question(
+              "Enter payment amount (GHS): "
+            );
+
+            const result = group.recordContribution(
+              name,
+              Number(week),
+              amount.trim()
+            );
+
+            console.log(
+              `Payment recorded for ${result.member}`
+            );
+            console.log(`Total paid: GHS ${result.paid}`);
+            console.log(
+              `Remaining balance: GHS ${result.remaining}`
+            );
+            break;
+          }
+
+          case "4": {
+            requireGroup();
+
+            const result = group.closeWeek();
+
+            if (!result.closed) {
+              console.log(
+                "\nWeek cannot close. Payments pending:"
+              );
+
+              result.owing.forEach(item => {
+                console.log(
+                  `${item.member} owes GHS ${item.amount}`
+                );
+              });
+            } else {
+              console.log(
+                `\nWeek ${result.week} closed!`
+              );
+              console.log(
+                `${result.recipient} receives GHS ${result.payout}`
+              );
+              console.log(
+                `Week ${result.nextWeek} has started.`
+              );
+            }
+            break;
+          }
+
+          case "5": {
+            requireGroup();
+            group.showReport();
+            break;
+          }
+
+          case "6": {
+            console.log("Thank you for using Susu Group Tracker!");
+            return;
+          }
+
+          default:
+            console.log(
+              "Invalid option. Please choose 1-6."
+            );
+        }
+      } catch (error) {
+        console.log(`Error: ${error.message}`);
+      }
+    }
+  } finally {
+    rl.close();
+  }
+}
+
+main().catch(error => {
+  console.error("Unexpected error:", error.message);
+  process.exitCode = 1;
+});
