@@ -45,6 +45,50 @@ class SusuGroup {
     return cleanName;
   }
 
+  recordContribution(name, week, amountGhs) {
+    if (!Number.isInteger(week) ||
+        week !== this.currentWeek) {
+      throw new Error(
+        "Payments are allowed only for the current week"
+      );
+    }
+
+    const member = this.members.find(
+      m => m.toLowerCase() === String(name).trim().toLowerCase()
+    );
+
+    if (!member) {
+      throw new Error("Unknown member");
+    }
+
+    const amount = parseGhs(amountGhs);
+
+    if (amount <= 0) {
+      throw new Error("Payment must be positive");
+    }
+
+    const alreadyPaid = this.payments.get(member);
+
+    const remaining =
+      this.weeklyContribution - alreadyPaid;
+
+    if (amount > remaining) {
+      throw new Error(
+        `Payment exceeds remaining balance. Owed: GHS ${formatGhs(remaining)}`
+      );
+    }
+
+    this.payments.set(member, alreadyPaid + amount);
+    this.started = true;
+
+    return {
+      member,
+      week,
+      paid: formatGhs(this.payments.get(member)),
+      remaining: formatGhs(remaining - amount)
+    };
+  }
+
   showMembers() {
     console.log("\n--- GROUP DETAILS ---");
     console.log(
